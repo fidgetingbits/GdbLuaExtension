@@ -48,10 +48,13 @@ import sys
 import math
 
 print("GDB Lua5.3 Extension", file=sys.stderr)
-print("* To use this extension, you have to compile lua with debug symbols.", file=sys.stderr)
+print(
+    "* To use this extension, you have to compile lua with debug symbols.",
+    file=sys.stderr,
+)
 print("* Please see the document for more details.", file=sys.stderr)
 
-if sys.version > '3':
+if sys.version > "3":
     xrange = range
     long = int
 
@@ -71,19 +74,19 @@ LUA_TTHREAD = 8
 
 LUA_NUMTAGS = 9
 LUA_TPROTO = LUA_NUMTAGS  # Function prototypes
-LUA_TDEADKEY = (LUA_NUMTAGS + 1)  # Removed keys in tables
+LUA_TDEADKEY = LUA_NUMTAGS + 1  # Removed keys in tables
 
-LUA_TLCL = (LUA_TFUNCTION | (0 << 4))  # Lua closure
-LUA_TLCF = (LUA_TFUNCTION | (1 << 4))  # Light C function
-LUA_TCCL = (LUA_TFUNCTION | (2 << 4))  # C closure
+LUA_TLCL = LUA_TFUNCTION | (0 << 4)  # Lua closure
+LUA_TLCF = LUA_TFUNCTION | (1 << 4)  # Light C function
+LUA_TCCL = LUA_TFUNCTION | (2 << 4)  # C closure
 
-LUA_TSHRSTR = (LUA_TSTRING | (0 << 4))  # Short strings
-LUA_TLNGSTR = (LUA_TSTRING | (1 << 4))  # Long strings
+LUA_TSHRSTR = LUA_TSTRING | (0 << 4)  # Short strings
+LUA_TLNGSTR = LUA_TSTRING | (1 << 4)  # Long strings
 
-LUA_TNUMFLT = (LUA_TNUMBER | (0 << 4))  # Float numbers
-LUA_TNUMINT = (LUA_TNUMBER | (1 << 4))  # Integer numbers
+LUA_TNUMFLT = LUA_TNUMBER | (0 << 4)  # Float numbers
+LUA_TNUMINT = LUA_TNUMBER | (1 << 4)  # Integer numbers
 
-BIT_ISCOLLECTABLE = (1 << 6)  # Collectable objects
+BIT_ISCOLLECTABLE = 1 << 6  # Collectable objects
 
 CIST_OAH = 1 << 0  # Original value of 'allowhook'
 CIST_LUA = 1 << 1  # Call is running a Lua function
@@ -544,16 +547,16 @@ OP_MODE_iAx = 3
 
 SIZE_C = 9
 SIZE_B = 9
-SIZE_Bx = (SIZE_C + SIZE_B)
+SIZE_Bx = SIZE_C + SIZE_B
 SIZE_A = 8
-SIZE_Ax = (SIZE_C + SIZE_B + SIZE_A)
+SIZE_Ax = SIZE_C + SIZE_B + SIZE_A
 
 SIZE_OP = 6
 
 POS_OP = 0
-POS_A = (POS_OP + SIZE_OP)
-POS_C = (POS_A + SIZE_A)
-POS_B = (POS_C + SIZE_C)
+POS_A = POS_OP + SIZE_OP
+POS_C = POS_A + SIZE_A
+POS_B = POS_C + SIZE_C
 POS_Bx = POS_C
 POS_Ax = POS_A
 MAXARG_sBx = 2147483647  # INT_MAX
@@ -679,18 +682,18 @@ class LuaDebugInfo:
         else:
             currentline = ""
 
-        if  self.istailcall:
+        if self.istailcall:
             tailcall = " (tailcall)"
         else:
             tailcall = ""
 
-        if len( self.short_src) == 0:
+        if len(self.short_src) == 0:
             source = "?"
         else:
-            source =  self.short_src
+            source = self.short_src
 
-        if  self.linedefined >= 0:
-            linedefined = ":%d" %  self.linedefined
+        if self.linedefined >= 0:
+            linedefined = ":%d" % self.linedefined
         else:
             linedefined = ""
         return "%s%s%s @ %s%s" % (name, currentline, tailcall, source, linedefined)
@@ -753,7 +756,7 @@ def lua_hashstring(str, l, seed):
     step = (l >> LUAI_HASHLIMIT) + 1
     i = l
     while i >= step:
-        h ^= ((h << 5) + (h >> 2) + (int(str[i - 1]) & 0xFF))
+        h ^= (h << 5) + (h >> 2) + (int(str[i - 1]) & 0xFF)
         i -= step
     return h
 
@@ -769,12 +772,19 @@ def lua_rawequalobj(obj1, obj2):
     t1 = TValueWrapper(obj1)
     t2 = TValueWrapper(obj2)
     if t1.get_type_tag() != t2.get_type_tag():
-        if t1.get_type_tag_no_variants() != t2.get_type_tag_no_variants() or t1.get_type_tag_no_variants() != LUA_TNUMBER:
+        if (
+            t1.get_type_tag_no_variants() != t2.get_type_tag_no_variants()
+            or t1.get_type_tag_no_variants() != LUA_TNUMBER
+        ):
             return False
         else:
             tn1 = t1.get_number()
             tn2 = t2.get_number()
-            return math.floor(tn1) == tn1 and math.floor(tn2) == tn2 and long(tn1) == long(tn2)
+            return (
+                math.floor(tn1) == tn1
+                and math.floor(tn2) == tn2
+                and long(tn1) == long(tn2)
+            )
     if t1.is_nil():
         return True
     elif t1.is_integer():
@@ -821,7 +831,10 @@ def lua_rawget(t, key):
         n = t["node"][ts["hash"] & (nsz - 1)].address
         while True:
             gkey = TValueWrapper(n["i_key"]["tvk"])
-            if gkey.is_short_string() and gkey.get_tstring_value().address == ts.address:
+            if (
+                gkey.is_short_string()
+                and gkey.get_tstring_value().address == ts.address
+            ):
                 return n["i_val"]
             else:
                 nx = n["i_key"]["nk"]["next"]
@@ -964,7 +977,9 @@ def lua_getlocalname(f, local_number, pc):
         if pc < f["locvars"][i]["endpc"]:  # is variable active?
             local_number -= 1
             if local_number == 0:
-                return TStringWrapper(f["locvars"][i]["varname"].dereference()).to_string()
+                return TStringWrapper(
+                    f["locvars"][i]["varname"].dereference()
+                ).to_string()
         i += 1
     return None
 
@@ -993,7 +1008,11 @@ def lua_getlocal(L, callinfo, n):
                 return name, ci.get_func() + nparams + n
         else:
             base = ci.get_lua_base()
-            name = lua_getlocalname(TValueWrapper(ci.get_func().dereference()).get_lua_closure_value()["p"], n, ci.get_current_pc())
+            name = lua_getlocalname(
+                TValueWrapper(ci.get_func().dereference()).get_lua_closure_value()["p"],
+                n,
+                ci.get_current_pc(),
+            )
     else:
         base = ci.get_base()
     if name is None:  # no 'standard' name
@@ -1007,27 +1026,27 @@ def lua_getlocal(L, callinfo, n):
 
 def lua_chunkid(source, bufflen):
     l = len(source)
-    if source[0] == '=':
+    if source[0] == "=":
         if l <= bufflen:
             return source[1:]
         else:
             return source[1:bufflen]
-    elif source[0] == '@':
+    elif source[0] == "@":
         if l <= bufflen:
             return source[1:]
         else:
-            return "..." + source[1 + l - bufflen:1 + l]
+            return "..." + source[1 + l - bufflen : 1 + l]
     else:
-        nl = source.find('\n')
+        nl = source.find("\n")
         bufflen -= 15
         if l < bufflen and nl < 0:
-            return "[string \"" + source + "\"]"
+            return '[string "' + source + '"]'
         else:
             if nl >= 0:
                 l = nl
             if l > bufflen:
                 l = bufflen
-            return "[string \"" + source[0:l] + "...\"]"
+            return '[string "' + source[0:l] + '..."]'
 
 
 def lua_filterpc(pc, jmptarget):
@@ -1081,7 +1100,7 @@ def lua_kname(p, pc, c):
             return TStringWrapper(kw.get_tstring_value().dereference()).to_string()
     else:
         name, what = lua_getobjname(p, pc, c)
-        if len(what) > 0 and what[0] == 'c':
+        if len(what) > 0 and what[0] == "c":
             return name
     return "?"
 
@@ -1101,15 +1120,27 @@ def lua_getobjname(p, lastpc, reg):
         elif op == OP_GETTABUP or op == OP_GETTABLE:
             k = lua_op_getargc(i)
             t = lua_op_getargb(i)
-            vn = lua_getlocalname(p, t + 1, pc) if op == OP_GETTABLE else lua_upvalname(p, t)
-            return lua_kname(p, pc, k), ("global" if vn is not None and vn == "_ENV" else "field")
+            vn = (
+                lua_getlocalname(p, t + 1, pc)
+                if op == OP_GETTABLE
+                else lua_upvalname(p, t)
+            )
+            return lua_kname(p, pc, k), (
+                "global" if vn is not None and vn == "_ENV" else "field"
+            )
         elif op == OP_GETUPVAL:
             return lua_upvalname(p, lua_op_getargb(i)), "upvalue"
         elif op == OP_LOADK or op == OP_LOADKX:
-            b = lua_op_getargbx(i) if op == OP_LOADK else lua_op_getargax(int(p["code"][pc + 1]))
+            b = (
+                lua_op_getargbx(i)
+                if op == OP_LOADK
+                else lua_op_getargax(int(p["code"][pc + 1]))
+            )
             tvw = TValueWrapper(p["k"][b])
             if tvw.is_string():
-                return TStringWrapper(tvw.get_tstring_value().dereference()).to_string(), "constant"
+                return TStringWrapper(
+                    tvw.get_tstring_value().dereference()
+                ).to_string(), "constant"
         elif op == OP_SELF:
             k = lua_op_getargc(i)
             return lua_kname(p, pc, k), "method"
@@ -1118,7 +1149,9 @@ def lua_getobjname(p, lastpc, reg):
 
 def lua_funcnamefromcode(L, ci):
     ciw = CallInfoWrapper(ci)
-    p = TValueWrapper(ciw.get_func().dereference()).get_lua_closure_value()["p"]  # Calling function
+    p = TValueWrapper(ciw.get_func().dereference()).get_lua_closure_value()[
+        "p"
+    ]  # Calling function
     pc = ciw.get_current_pc()  # Calling instruction index
     i = int(p["code"][pc])  # Calling instruction
     if ciw.is_hooked():
@@ -1132,8 +1165,20 @@ def lua_funcnamefromcode(L, ci):
         tm = TM_INDEX
     elif opcode == OP_SETTABUP or opcode == OP_SETTABLE:
         tm = TM_NEWINDEX
-    elif opcode == OP_ADD or opcode == OP_SUB or opcode == OP_MUL or opcode == OP_MOD or opcode == OP_POW or opcode == OP_DIV or\
-            opcode == OP_IDIV or opcode == OP_BAND or opcode == OP_BOR or opcode == OP_BXOR or opcode == OP_SHL or opcode == OP_SHR:
+    elif (
+        opcode == OP_ADD
+        or opcode == OP_SUB
+        or opcode == OP_MUL
+        or opcode == OP_MOD
+        or opcode == OP_POW
+        or opcode == OP_DIV
+        or opcode == OP_IDIV
+        or opcode == OP_BAND
+        or opcode == OP_BOR
+        or opcode == OP_BXOR
+        or opcode == OP_SHL
+        or opcode == OP_SHR
+    ):
         offset = lua_op_getcode(i) - OP_ADD
         tm = offset + TM_ADD
     elif opcode == OP_UNM:
@@ -1152,12 +1197,14 @@ def lua_funcnamefromcode(L, ci):
         tm = TM_LE
     else:
         return "?", ""
-    return TStringWrapper(lua_getglobalstate(L)["tmname"][tm].dereference()).to_string(), "metamethod"
+    return TStringWrapper(
+        lua_getglobalstate(L)["tmname"][tm].dereference()
+    ).to_string(), "metamethod"
 
 
 def lua_getinfo(L, what, ci):
     ar = LuaDebugInfo()
-    if what[0] == '>':
+    if what[0] == ">":
         ci = None
         func = L["top"] - 1
         what = what[1:]
@@ -1172,7 +1219,7 @@ def lua_getinfo(L, what, ci):
     ciw = CallInfoWrapper(ci) if ci is not None else None
     for i in range(0, len(what)):
         ch = what[i]
-        if ch == 'S':
+        if ch == "S":
             if cl is None or cl["c"]["tt"] == LUA_TCCL:
                 ar.source = "=[C]"
                 ar.linedefined = -1
@@ -1185,14 +1232,20 @@ def lua_getinfo(L, what, ci):
                     ar.address = t.get_light_c_function()
             else:
                 p = cl["l"]["p"]
-                ar.source = TStringWrapper(p["source"].dereference()).to_string() if p["source"] else "=?"
+                ar.source = (
+                    TStringWrapper(p["source"].dereference()).to_string()
+                    if p["source"]
+                    else "=?"
+                )
                 ar.linedefined = p["linedefined"]
                 ar.lastlinedefined = p["lastlinedefined"]
                 ar.what = "main" if ar.linedefined == 0 else "Lua"
                 ar.short_src = lua_chunkid(ar.source, LUA_IDSIZE)
-        elif ch == 'l':
-            ar.currentline = ciw.get_current_line() if ciw is not None and ciw.is_lua() else -1
-        elif ch == 'u':
+        elif ch == "l":
+            ar.currentline = (
+                ciw.get_current_line() if ciw is not None and ciw.is_lua() else -1
+            )
+        elif ch == "u":
             ar.nups = 0 if cl is None else cl["c"]["nupvalues"]
             if cl is None or cl["c"]["tt"] == LUA_TCCL:
                 ar.isvararg = 1
@@ -1200,9 +1253,9 @@ def lua_getinfo(L, what, ci):
             else:
                 ar.isvararg = cl["l"]["p"]["is_vararg"]
                 ar.nparams = cl["l"]["p"]["numparams"]
-        elif ch == 't':
+        elif ch == "t":
             ar.istailcall = ciw.is_tailcall() if ciw is not None else False
-        elif ch == 'n':
+        elif ch == "n":
             ar.name = "?"
             ar.namewhat = ""
             if ciw is None:
@@ -1280,7 +1333,12 @@ def lua_getmetatable(obj):
 
 
 def escape_string(s):
-    return s.replace('\n', "\\n").replace('\r', "\\r").replace('"', "\\\"").replace('\t', "\\t")
+    return (
+        s.replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace('"', '\\"')
+        .replace("\t", "\\t")
+    )
 
 
 class TStringPrinter:
@@ -1297,7 +1355,7 @@ class TStringPrinter:
         if self.value.value.address == 0:
             return "nullptr"
         if show_string:
-            return "<lua_string> \"%s\"" % escape_string(self.value.to_string())
+            return '<lua_string> "%s"' % escape_string(self.value.to_string())
         return "<lua_string>"
 
 
@@ -1309,7 +1367,10 @@ class TStringPointerPrinter(TStringPrinter):
     def to_string(self, show_string=False):
         if self.addr == 0:
             return "(TString *) 0x%x" % self.addr
-        return "(TString *) 0x%x %s" % (self.addr, TStringPrinter.to_string(self, show_string=show_string))
+        return "(TString *) 0x%x %s" % (
+            self.addr,
+            TStringPrinter.to_string(self, show_string=show_string),
+        )
 
 
 class UDataPrinter:
@@ -1349,8 +1410,12 @@ class CClosurePrinter:
             return
         yield "func", self.value.get_function()
         for i in range(0, self.value.get_upvalue_count()):
-            yield "upval_%d" % (i + 1), TValuePointerPrinter(pointer_of(self.value.get_upvalue(i))).to_string(with_address=True,
-                                                                                                              show_string=True)
+            yield (
+                "upval_%d" % (i + 1),
+                TValuePointerPrinter(pointer_of(self.value.get_upvalue(i))).to_string(
+                    with_address=True, show_string=True
+                ),
+            )
 
     def to_string(self):
         if self.value.value.address == 0:
@@ -1378,8 +1443,12 @@ class LClosurePrinter:
             return
         yield "proto", self.value.get_prototype()
         for i in range(0, self.value.get_upvalue_count()):
-            yield "upval_%d" % (i + 1), TValuePointerPrinter(pointer_of(self.value.get_upvalue(i))).to_string(with_address=True,
-                                                                                                              show_string=True)
+            yield (
+                "upval_%d" % (i + 1),
+                TValuePointerPrinter(pointer_of(self.value.get_upvalue(i))).to_string(
+                    with_address=True, show_string=True
+                ),
+            )
 
     def to_string(self):
         if self.value.value.address == 0:
@@ -1422,14 +1491,18 @@ class TablePrinter:
             if self.value.get_metatable() != 0:
                 yield "@metatable", self.value.get_metatable()
             for k, v in self.value:
-                vstr = TValuePointerPrinter(v).to_string(with_address=True, show_string=True)
+                vstr = TValuePointerPrinter(v).to_string(
+                    with_address=True, show_string=True
+                )
                 if isinstance(k, gdb.Value):
                     wrappered_key = TValueWrapper(k)
                     if wrappered_key.is_number():
                         yield "[%s]" % str(wrappered_key.get_number()), vstr
                     elif wrappered_key.is_string():
-                        wrappered_str = TStringWrapper(wrappered_key.get_tstring_value().dereference())
-                        yield "[\"%s\"]" % escape_string(wrappered_str.to_string()), vstr
+                        wrappered_str = TStringWrapper(
+                            wrappered_key.get_tstring_value().dereference()
+                        )
+                        yield '["%s"]' % escape_string(wrappered_str.to_string()), vstr
                     else:
                         yield TValuePointerPrinter(k.address).to_string(), vstr
                 else:
@@ -1469,12 +1542,21 @@ class ProtoPrinter:
             yield "args", "%d (varargs)" % self.value.get_arg_count()
         else:
             yield "args", "%d" % self.value.get_arg_count()
-        yield "source", TStringPointerPrinter(self.value.get_source()).to_string(show_string=True)
+        yield (
+            "source",
+            TStringPointerPrinter(self.value.get_source()).to_string(show_string=True),
+        )
         yield "linedefined", self.value.get_line_defined()
         for i, v in self.value.upvalues():
-            yield "upval_%d" % i, TStringPointerPrinter(v["name"]).to_string(show_string=True)
+            yield (
+                "upval_%d" % i,
+                TStringPointerPrinter(v["name"]).to_string(show_string=True),
+            )
         for i, v in self.value.local_values():
-            yield "local_%d" % i, TStringPointerPrinter(v["varname"]).to_string(show_string=True)
+            yield (
+                "local_%d" % i,
+                TStringPointerPrinter(v["varname"]).to_string(show_string=True),
+            )
 
     def to_string(self):
         if self.value.value.address == 0:
@@ -1553,7 +1635,9 @@ class TValuePrinter:
             if with_address:
                 ret += " 0x%x" % long(ts)
             if show_string:
-                ret += " \"%s\"" % escape_string(TStringWrapper(ts.dereference()).to_string())
+                ret += ' "%s"' % escape_string(
+                    TStringWrapper(ts.dereference()).to_string()
+                )
             return ret
         elif self.value.is_table():
             if with_address:
@@ -1582,7 +1666,12 @@ class TValuePointerPrinter(TValuePrinter):
     def to_string(self, with_address=False, show_string=False):
         if self.addr == 0:
             return "(TValue *) 0x%x" % self.addr
-        return "(TValue *) 0x%x %s" % (self.addr, TValuePrinter.to_string(self, with_address=with_address, show_string=show_string))
+        return "(TValue *) 0x%x %s" % (
+            self.addr,
+            TValuePrinter.to_string(
+                self, with_address=with_address, show_string=show_string
+            ),
+        )
 
 
 # Functions
@@ -1590,7 +1679,7 @@ class TValuePointerPrinter(TValuePrinter):
 
 class LuaGetGlobalState(gdb.Function):
     """lua_getglobalstate(L)
-Returns global state from current thread. C Api: G"""
+    Returns global state from current thread. C Api: G"""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_getglobalstate")
@@ -1601,7 +1690,7 @@ Returns global state from current thread. C Api: G"""
 
 class LuaNilObject(gdb.Function):
     """lua_nilobject()
-Returns global nil object. C Api: luaO_nilobject"""
+    Returns global nil object. C Api: luaO_nilobject"""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_nilobject")
@@ -1612,7 +1701,7 @@ Returns global nil object. C Api: luaO_nilobject"""
 
 class LuaIndex2Value(gdb.Function):
     """lua_index2addr(L, idx)
-Returns object from specific stack index. C Api: index2addr"""
+    Returns object from specific stack index. C Api: index2addr"""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_index2value")
@@ -1623,7 +1712,7 @@ Returns object from specific stack index. C Api: index2addr"""
 
 class LuaRawGet(gdb.Function):
     """lua_rawget(table, key)
-Returns object from table by key. C Api: lua_rawget"""
+    Returns object from table by key. C Api: lua_rawget"""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_rawget")
@@ -1634,7 +1723,7 @@ Returns object from table by key. C Api: lua_rawget"""
 
 class LuaRawGetI(gdb.Function):
     """lua_rawgeti(table, idx)
-Returns object from table object by int key. C Api: lua_rawgeti"""
+    Returns object from table object by int key. C Api: lua_rawgeti"""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_rawgeti")
@@ -1645,7 +1734,7 @@ Returns object from table object by int key. C Api: lua_rawgeti"""
 
 class LuaRawGetS(gdb.Function):
     """lua_rawgets(table, key)
-Returns object from table object by string key. Note that this method is slow."""
+    Returns object from table object by string key. Note that this method is slow."""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_rawgets")
@@ -1656,7 +1745,7 @@ Returns object from table object by string key. Note that this method is slow.""
 
 class LuaRawLen(gdb.Function):
     """lua_rawlen(val)
-Returns length or size from object. C Api: lua_rawlen."""
+    Returns length or size from object. C Api: lua_rawlen."""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_rawlen")
@@ -1667,7 +1756,7 @@ Returns length or size from object. C Api: lua_rawlen."""
 
 class LuaGetCachedString(gdb.Function):
     """lua_getcachedstring(L, str)
-Returns a cached string from current lua state."""
+    Returns a cached string from current lua state."""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_getcachedstring")
@@ -1681,7 +1770,7 @@ Returns a cached string from current lua state."""
 
 class LuaGetRegistryTable(gdb.Function):
     """lua_getregistrytable(L)
-Returns the global registry table."""
+    Returns the global registry table."""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_getregistrytable")
@@ -1692,7 +1781,7 @@ Returns the global registry table."""
 
 class LuaGetGlobalTable(gdb.Function):
     """lua_getglobaltable(L)
-Returns the global table."""
+    Returns the global table."""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_getglobaltable")
@@ -1703,7 +1792,7 @@ Returns the global table."""
 
 class LuaGetStack(gdb.Function):
     """lua_getstack(L, idx)
-Returns the stack frame at 'idx'. C Api: lua_getstack"""
+    Returns the stack frame at 'idx'. C Api: lua_getstack"""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_getstack")
@@ -1714,7 +1803,7 @@ Returns the stack frame at 'idx'. C Api: lua_getstack"""
 
 class LuaGetLocal(gdb.Function):
     """lua_getlocal(L, frame, idx)
-Returns the local variable at index 'idx' of the specific stack frame 'frame'. C Api: lua_getlocal"""
+    Returns the local variable at index 'idx' of the specific stack frame 'frame'. C Api: lua_getlocal"""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_getlocal")
@@ -1729,7 +1818,7 @@ Returns the local variable at index 'idx' of the specific stack frame 'frame'. C
 
 class LuaGetLocalName(gdb.Function):
     """lua_getlocalname(L, frame, idx)
-Returns the name of the local variable at index 'idx' of the specific stack frame 'frame'. C Api: lua_getlocal"""
+    Returns the name of the local variable at index 'idx' of the specific stack frame 'frame'. C Api: lua_getlocal"""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_getlocalname")
@@ -1744,7 +1833,7 @@ Returns the name of the local variable at index 'idx' of the specific stack fram
 
 class LuaGetMetatable(gdb.Function):
     """lua_getmetatable(obj)
-Returns the metatable of the specific object. Returns 0 if no metatable. C Api: lua_getmetatable"""
+    Returns the metatable of the specific object. Returns 0 if no metatable. C Api: lua_getmetatable"""
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_getmetatable")
@@ -1759,10 +1848,12 @@ Returns the metatable of the specific object. Returns 0 if no metatable. C Api: 
 
 class GLuaTraceback(gdb.Command):
     """glua_traceback [lua_State*]
-Print the stack traceback of the lua_State."""
+    Print the stack traceback of the lua_State."""
 
     def __init__(self):
-        gdb.Command.__init__(self, "glua_traceback", gdb.COMMAND_STACK, gdb.COMPLETE_NONE)
+        gdb.Command.__init__(
+            self, "glua_traceback", gdb.COMMAND_STACK, gdb.COMPLETE_NONE
+        )
 
     def invoke(self, args, _from_tty):
         argv = gdb.string_to_argv(args)
@@ -1784,10 +1875,12 @@ Print the stack traceback of the lua_State."""
 
 class GLuaStackInfo(gdb.Command):
     """glua_stackinfo [lua_State* [index]]
-Print the stack info and all the variables of the current stack frame or the specific stack frame."""
+    Print the stack info and all the variables of the current stack frame or the specific stack frame."""
 
     def __init__(self):
-        gdb.Command.__init__(self, "glua_stackinfo", gdb.COMMAND_STACK, gdb.COMPLETE_NONE)
+        gdb.Command.__init__(
+            self, "glua_stackinfo", gdb.COMMAND_STACK, gdb.COMPLETE_NONE
+        )
 
     def invoke(self, args, _from_tty):
         argv = gdb.string_to_argv(args)
@@ -1828,7 +1921,15 @@ Print the stack info and all the variables of the current stack frame or the spe
                     top = next.get_base()
             p = top - 1
             while p >= base:
-                print("\t#%d  %s" % (p - base + 1, TValuePointerPrinter(p).to_string(with_address=True, show_string=True)))
+                print(
+                    "\t#%d  %s"
+                    % (
+                        p - base + 1,
+                        TValuePointerPrinter(p).to_string(
+                            with_address=True, show_string=True
+                        ),
+                    )
+                )
                 p = p - 1
 
             if t.is_c_closure():
@@ -1838,7 +1939,15 @@ Print the stack info and all the variables of the current stack frame or the spe
                     print("\nUpvalues:")
                     for i in range(0, nupvalues):
                         upval = cl["upvalue"][i]
-                        print("\t#%d  %s" % (i, TValuePointerPrinter(upval.address).to_string(with_address=True, show_string=True)))
+                        print(
+                            "\t#%d  %s"
+                            % (
+                                i,
+                                TValuePointerPrinter(upval.address).to_string(
+                                    with_address=True, show_string=True
+                                ),
+                            )
+                        )
         else:  # Lua function
             assert ci.is_lua()
 
@@ -1853,16 +1962,37 @@ Print the stack info and all the variables of the current stack frame or the spe
                     val = ci.get_lua_base() + i
                     name = lua_getlocalname(f, i + 1, ci.get_current_pc())
                     if name is None:
-                        limit = L["top"] if ci.value.address == L["ci"] else ci.get_next().get_func()
+                        limit = (
+                            L["top"]
+                            if ci.value.address == L["ci"]
+                            else ci.get_next().get_func()
+                        )
                         if limit - ci.get_lua_base() >= i + 1 > 0:
                             name = "(*temporary)"
                         else:
                             name = "(?)"
-                    print("\t#%d  %s = %s" % (i + 1, name, TValuePointerPrinter(val).to_string(with_address=True, show_string=True)))
+                    print(
+                        "\t#%d  %s = %s"
+                        % (
+                            i + 1,
+                            name,
+                            TValuePointerPrinter(val).to_string(
+                                with_address=True, show_string=True
+                            ),
+                        )
+                    )
 
                 for i in range(-nvarparams, 0):
                     val = ci.get_lua_base() + i
-                    print("\t#%d  (*vararg) = %s" % (i, TValuePointerPrinter(val).to_string(with_address=True, show_string=True)))
+                    print(
+                        "\t#%d  (*vararg) = %s"
+                        % (
+                            i,
+                            TValuePointerPrinter(val).to_string(
+                                with_address=True, show_string=True
+                            ),
+                        )
+                    )
 
             # local variables
             if idx == 0:
@@ -1881,13 +2011,25 @@ Print the stack info and all the variables of the current stack frame or the spe
                     val = ci.get_lua_base() + nparams + i
                     name = lua_getlocalname(f, i + 1 + nparams, ci.get_current_pc())
                     if name is None:
-                        limit = L["top"] if ci.value.address == L["ci"] else ci.get_next().get_func()
+                        limit = (
+                            L["top"]
+                            if ci.value.address == L["ci"]
+                            else ci.get_next().get_func()
+                        )
                         if limit - ci.get_lua_base() >= i + 1 > 0:
                             name = "(*temporary)"
                         else:
                             name = "(?)"
-                    print("\t#%d  %s = %s" % (i + 1 + nparams, name, TValuePointerPrinter(val).to_string(with_address=True,
-                                                                                                         show_string=True)))
+                    print(
+                        "\t#%d  %s = %s"
+                        % (
+                            i + 1 + nparams,
+                            name,
+                            TValuePointerPrinter(val).to_string(
+                                with_address=True, show_string=True
+                            ),
+                        )
+                    )
 
             # upvalues
             cl = t.get_lua_closure_value()
@@ -1897,15 +2039,26 @@ Print the stack info and all the variables of the current stack frame or the spe
                 for i in range(0, nupvalues):
                     upval = cl["upvals"][i]["v"]
                     name = lua_upvalname(f, i)
-                    print("\t#%d  %s = %s" % (i + 1, name, TValuePointerPrinter(upval).to_string(with_address=True, show_string=True)))
+                    print(
+                        "\t#%d  %s = %s"
+                        % (
+                            i + 1,
+                            name,
+                            TValuePointerPrinter(upval).to_string(
+                                with_address=True, show_string=True
+                            ),
+                        )
+                    )
 
 
 class GLuaObjectInfo(gdb.Command):
     """glua_objectinfo [lua_State*]
-Print the memory usage of all the gc objects."""
+    Print the memory usage of all the gc objects."""
 
     def __init__(self):
-        gdb.Command.__init__(self, "glua_objectinfo", gdb.COMMAND_STACK, gdb.COMPLETE_NONE)
+        gdb.Command.__init__(
+            self, "glua_objectinfo", gdb.COMMAND_STACK, gdb.COMPLETE_NONE
+        )
 
     def invoke(self, args, _from_tty):
         argv = gdb.string_to_argv(args)
@@ -1982,15 +2135,21 @@ Print the memory usage of all the gc objects."""
             elif tnov == LUA_TTABLE:
                 table = obj["h"]
                 array_count = table["sizearray"]
-                node_count = (1 << int(table["lsizenode"]))
+                node_count = 1 << int(table["lsizenode"])
                 table_size += tvalue_sizeof * array_count + table_sizeof
                 if table["lastfree"]:
                     table_size += node_sizeof * node_count
                 table_count += 1
             elif tnov == LUA_TPROTO:
                 f = obj["p"]
-                sz = f["sizecode"] * instruction_sizeof + f["sizep"] * proto_ptr_sizeof + f["sizek"] * tvalue_sizeof +\
-                     f["sizelineinfo"] * int_sizeof + f["sizelocvars"] * locvar_sizeof + f["sizeupvalues"] * upvaldesc_sizeof
+                sz = (
+                    f["sizecode"] * instruction_sizeof
+                    + f["sizep"] * proto_ptr_sizeof
+                    + f["sizek"] * tvalue_sizeof
+                    + f["sizelineinfo"] * int_sizeof
+                    + f["sizelocvars"] * locvar_sizeof
+                    + f["sizeupvalues"] * upvaldesc_sizeof
+                )
                 proto_size += sz + proto_sizeof
                 proto_count += 1
             elif tnov == LUA_TTHREAD:
@@ -2013,20 +2172,37 @@ Print the memory usage of all the gc objects."""
         print("\tTable:         \t%d (%d bytes)" % (table_count, table_size))
         print("\tPrototype:     \t%d (%d bytes)" % (proto_count, proto_size))
         print("\tCoroutine:     \t%d (%d bytes)" % (coroutine_count, coroutine_size))
-        print("\tString:        \t%d (%d bytes)" % (s_string_count + l_string_count, s_string_size + l_string_size))
+        print(
+            "\tString:        \t%d (%d bytes)"
+            % (s_string_count + l_string_count, s_string_size + l_string_size)
+        )
         print("\t  Short String:\t%d (%d bytes)" % (s_string_count, s_string_size))
         print("\t  Long String: \t%d (%d bytes)" % (l_string_count, l_string_size))
-        print("\tClosure:       \t%d (%d bytes)" % (c_closure_count + l_closure_count, c_closure_size + l_closure_size))
+        print(
+            "\tClosure:       \t%d (%d bytes)"
+            % (c_closure_count + l_closure_count, c_closure_size + l_closure_size)
+        )
         print("\t  C Closure:   \t%d (%d bytes)" % (c_closure_count, c_closure_size))
         print("\t  Lua Closure: \t%d (%d bytes)" % (l_closure_count, l_closure_size))
         print("Total %d objects" % cnt)
-        print("      %d bytes" % (userdata_size + table_size + proto_size + coroutine_size + s_string_size + l_string_size +\
-                                  c_closure_size + l_closure_size))
+        print(
+            "      %d bytes"
+            % (
+                userdata_size
+                + table_size
+                + proto_size
+                + coroutine_size
+                + s_string_size
+                + l_string_size
+                + c_closure_size
+                + l_closure_size
+            )
+        )
 
 
 class GLuaBreak(gdb.Command):
     """glua_break [lua_State*] filename line
-Create a read watch breakpoint in the bytecode of function prototype at the specific source location."""
+    Create a read watch breakpoint in the bytecode of function prototype at the specific source location."""
 
     def __init__(self):
         gdb.Command.__init__(self, "glua_break", gdb.COMMAND_STACK, gdb.COMPLETE_NONE)
@@ -2056,7 +2232,7 @@ Create a read watch breakpoint in the bytecode of function prototype at the spec
                 f = obj["p"]
                 if f["source"]:
                     ts_src = TStringWrapper(f["source"].dereference())
-                    if int(ts_src.get_buffer()[0]) & 0xFF == ord('@'):
+                    if int(ts_src.get_buffer()[0]) & 0xFF == ord("@"):
                         src = ts_src.to_string()
                         if os.path.basename(src[1:]) == filename:
                             # looking for lineinfo
@@ -2066,11 +2242,16 @@ Create a read watch breakpoint in the bytecode of function prototype at the spec
                                         if i < f["sizecode"]:
                                             cnt += 1
                                             if cnt >= 4:
-                                                print("Too many breakpoint found, abort")
+                                                print(
+                                                    "Too many breakpoint found, abort"
+                                                )
                                                 return
                                             addr = f["code"] + i
                                             src_id = lua_chunkid(src, LUA_IDSIZE)
-                                            print("Breakpoint at 0x%x: %s:%d" % (addr, src_id, line))
+                                            print(
+                                                "Breakpoint at 0x%x: %s:%d"
+                                                % (addr, src_id, line)
+                                            )
                                             gdb.execute("rwatch *(int*)%s" % addr)
                                             break
             obj = obj["gc"]["next"].cast(tu)
@@ -2078,7 +2259,7 @@ Create a read watch breakpoint in the bytecode of function prototype at the spec
 
 class GLuaBreakRegex(gdb.Command):
     """glua_breakr [lua_State*] regex line
-Create a read watch breakpoint in the bytecode of function prototype at the specific source location."""
+    Create a read watch breakpoint in the bytecode of function prototype at the specific source location."""
 
     def __init__(self):
         gdb.Command.__init__(self, "glua_breakr", gdb.COMMAND_STACK, gdb.COMPLETE_NONE)
@@ -2122,7 +2303,10 @@ Create a read watch breakpoint in the bytecode of function prototype at the spec
                                             return
                                         addr = f["code"] + i
                                         src_id = lua_chunkid(src, LUA_IDSIZE)
-                                        print("Breakpoint at 0x%x: %s:%d" % (addr, src_id, line))
+                                        print(
+                                            "Breakpoint at 0x%x: %s:%d"
+                                            % (addr, src_id, line)
+                                        )
                                         gdb.execute("rwatch *(int*)%s" % addr)
                                         break
             obj = obj["gc"]["next"].cast(tu)
