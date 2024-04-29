@@ -1138,9 +1138,10 @@ def lua_getobjname(p, lastpc, reg):
             )
             tvw = TValueWrapper(p["k"][b])
             if tvw.is_string():
-                return TStringWrapper(
-                    tvw.get_tstring_value().dereference()
-                ).to_string(), "constant"
+                return (
+                    TStringWrapper(tvw.get_tstring_value().dereference()).to_string(),
+                    "constant",
+                )
         elif op == OP_SELF:
             k = lua_op_getargc(i)
             return lua_kname(p, pc, k), "method"
@@ -1197,9 +1198,10 @@ def lua_funcnamefromcode(L, ci):
         tm = TM_LE
     else:
         return "?", ""
-    return TStringWrapper(
-        lua_getglobalstate(L)["tmname"][tm].dereference()
-    ).to_string(), "metamethod"
+    return (
+        TStringWrapper(lua_getglobalstate(L)["tmname"][tm].dereference()).to_string(),
+        "metamethod",
+    )
 
 
 def lua_getinfo(L, what, ci):
@@ -1803,7 +1805,8 @@ class LuaGetStack(gdb.Function):
 
 class LuaGetLocal(gdb.Function):
     """lua_getlocal(L, frame, idx)
-    Returns the local variable at index 'idx' of the specific stack frame 'frame'. C Api: lua_getlocal"""
+    Returns the local variable at index 'idx' of the specific stack frame 'frame'. C Api: lua_getlocal
+    """
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_getlocal")
@@ -1818,7 +1821,8 @@ class LuaGetLocal(gdb.Function):
 
 class LuaGetLocalName(gdb.Function):
     """lua_getlocalname(L, frame, idx)
-    Returns the name of the local variable at index 'idx' of the specific stack frame 'frame'. C Api: lua_getlocal"""
+    Returns the name of the local variable at index 'idx' of the specific stack frame 'frame'. C Api: lua_getlocal
+    """
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_getlocalname")
@@ -1833,7 +1837,8 @@ class LuaGetLocalName(gdb.Function):
 
 class LuaGetMetatable(gdb.Function):
     """lua_getmetatable(obj)
-    Returns the metatable of the specific object. Returns 0 if no metatable. C Api: lua_getmetatable"""
+    Returns the metatable of the specific object. Returns 0 if no metatable. C Api: lua_getmetatable
+    """
 
     def __init__(self):
         gdb.Function.__init__(self, "lua_getmetatable")
@@ -1875,7 +1880,8 @@ class GLuaTraceback(gdb.Command):
 
 class GLuaStackInfo(gdb.Command):
     """glua_stackinfo [lua_State* [index]]
-    Print the stack info and all the variables of the current stack frame or the specific stack frame."""
+    Print the stack info and all the variables of the current stack frame or the specific stack frame.
+    """
 
     def __init__(self):
         gdb.Command.__init__(
@@ -2202,7 +2208,8 @@ class GLuaObjectInfo(gdb.Command):
 
 class GLuaBreak(gdb.Command):
     """glua_break [lua_State*] filename line
-    Create a read watch breakpoint in the bytecode of function prototype at the specific source location."""
+    Create a read watch breakpoint in the bytecode of function prototype at the specific source location.
+    """
 
     def __init__(self):
         gdb.Command.__init__(self, "glua_break", gdb.COMMAND_STACK, gdb.COMPLETE_NONE)
@@ -2259,7 +2266,8 @@ class GLuaBreak(gdb.Command):
 
 class GLuaBreakRegex(gdb.Command):
     """glua_breakr [lua_State*] regex line
-    Create a read watch breakpoint in the bytecode of function prototype at the specific source location."""
+    Create a read watch breakpoint in the bytecode of function prototype at the specific source location.
+    """
 
     def __init__(self):
         gdb.Command.__init__(self, "glua_breakr", gdb.COMMAND_STACK, gdb.COMPLETE_NONE)
