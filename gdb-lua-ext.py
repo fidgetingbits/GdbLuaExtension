@@ -1,5 +1,6 @@
 # GDB Extensions for Lua 5.3
-# Author: chu <1871361697@qq.com>
+# Modified to work on Lua 5.1 by fidgetingbits
+# Original Author: chu <1871361697@qq.com>
 # Github: http://github.com/9chu
 # Inspired by https://github.com/xjdrew/lua-gdb
 #
@@ -58,6 +59,8 @@ if sys.version > "3":
     xrange = range
     long = int
 
+MAX_STRING_LENGTH = 64  # Limit long strings in pretty printer output
+
 # Basic wrappers
 
 
@@ -86,7 +89,9 @@ LUA_TLNGSTR = LUA_TSTRING | (1 << 4)  # Long strings
 LUA_TNUMFLT = LUA_TNUMBER | (0 << 4)  # Float numbers
 LUA_TNUMINT = LUA_TNUMBER | (1 << 4)  # Integer numbers
 
-BIT_ISCOLLECTABLE = 1 << 6  # Collectable objects
+# There is no BIT_ISCOLLECTABLE on lua 5.1. Marked as 0 to not influence tag matching
+BIT_ISCOLLECTABLE = 0
+# BIT_ISCOLLECTABLE = 1 << 6  # Collectable objects
 
 CIST_OAH = 1 << 0  # Original value of 'allowhook'
 CIST_LUA = 1 << 1  # Call is running a Lua function
@@ -97,6 +102,9 @@ CIST_TAIL = 1 << 5  # Call was tail called
 CIST_HOOKYIELD = 1 << 6  # Last hook called yielded
 CIST_LEQ = 1 << 7  # Using __lt for __le
 CIST_FIN = 1 << 8  # Call is running a finalizer
+
+cache_last_tstring = None
+cache_last_tstring_len = 0
 
 
 def pointer_of(v):
@@ -109,7 +117,8 @@ class TValueWrapper:
         self.value = value
 
     def get_raw_type_tag(self):  # rttype
-        return self.value["tt_"]
+        # lua 5.1 is tt not tt_
+        return self.value["tt"]
 
     def get_type_tag(self):  # ttype
         return self.get_raw_type_tag() & 0x3F
@@ -181,10 +190,14 @@ class TValueWrapper:
         return self.check_tag(LUA_TDEADKEY)
 
     def is_collectable(self):
-        return (self.get_raw_type_tag() & BIT_ISCOLLECTABLE) != 0
+        # FThere is no BIT_ISCOLLECTABLE on lua 5.1
+        return True
+        # return (self.get_raw_type_tag() & BIT_ISCOLLECTABLE) != 0
 
-    def get_value(self):  # val_
-        return self.value["value_"]
+    def get_value(self):
+        # lua 5.1 is value not value_
+        return self.value["value"]
+        # return self.value["value_"]
 
     def get_integer(self):  # ivalue
         assert self.is_integer()
@@ -219,7 +232,9 @@ class TValueWrapper:
 
     def get_gc_union(self):  # cast_u
         assert self.is_collectable()
-        t = gdb.lookup_type("union GCUnion").pointer()
+        # t = gdb.lookup_type("union GCUnion").pointer()
+        # There is no GCUnion on lua 5.1
+        t = gdb.lookup_type("GCObject").pointer()
         return self.get_gc_value().cast(t)
 
     def get_tstring_value(self):  # tsvalue
@@ -267,9 +282,12 @@ class TStringWrapper:
         self.value = value
 
     def get_length(self):
-        if self.value["tt"] == LUA_TSHRSTR:
-            return self.value["shrlen"]
-        return self.value["u"]["lnglen"]
+        print(self.value)
+        # no LUA_TSHRSTR in lua 5.1
+        # if self.value["tsv"]["tt"] == LUA_TSHRSTR:
+        #     return self.value["shrlen"]
+        # return self.value["u"]["lnglen"]
+        return self.value["tsv"]["len"]
 
     def get_buffer(self):
         t = gdb.lookup_type("char").pointer()
@@ -1357,7 +1375,11 @@ class TStringPrinter:
         if self.value.value.address == 0:
             return "nullptr"
         if show_string:
-            return '<lua_string> "%s"' % escape_string(self.value.to_string())
+            vstring = self.value.to_string()
+            vlen = len(vstring)
+            if vlen > MAX_STRING_LENGTH:
+                vstring = vstring[:MAX_STRING_LENGTH] + "... (len: 0x%x)" % vlen
+            return '<lua_string> "%s"' % escape_string(vstring)
         return "<lua_string>"
 
 
@@ -1637,9 +1659,20 @@ class TValuePrinter:
             if with_address:
                 ret += " 0x%x" % long(ts)
             if show_string:
-                ret += ' "%s"' % escape_string(
-                    TStringWrapper(ts.dereference()).to_string()
-                )
+                # If we have to dump a ton of entries, this is super slow. So we cache the last TString reference, and
+                # if it's the same as the last one, we don't dump it again.
+                global cache_last_tstring
+                global cache_last_string_len
+                if cache_last_tstring is not None and cache_last_tstring == ts:
+                    vstring = "<same as last> (len: 0x%x)" % cache_last_string_len
+                else:
+                    vstring = TStringWrapper(ts.dereference()).to_string()
+                    vlen = len(vstring)
+                    if vlen > MAX_STRING_LENGTH:
+                        vstring = vstring[:MAX_STRING_LENGTH] + "... (len: 0x%x)" % vlen
+                    cache_last_tstring = ts
+                    cache_last_string_len = vlen
+                ret += ' "%s"' % escape_string(vstring)
             return ret
         elif self.value.is_table():
             if with_address:
@@ -1657,6 +1690,7 @@ class TValuePrinter:
             if with_address:
                 return "<lua_userdata^> 0x%x" % long(self.value.get_userdata_value())
             return "<lua_userdata^>"
+        print(f"WARN: Unknown value type: {self.value.value.type}")
         return "<lua_?>"
 
 
